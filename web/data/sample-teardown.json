@@ -1,0 +1,297 @@
+{
+  "findings": {
+    "company": "cal.com",
+    "domain": "cal.com",
+    "homepageUrl": "https://cal.com",
+    "depth": "full",
+    "positioning": {
+      "claim": "Hero headline is \"The better way to schedule your meetings\"",
+      "confidence": "high",
+      "data": {
+        "headline": "The better way to schedule your meetings",
+        "subhead": "A fully customizable scheduling software for individuals, businesses taking calls and developers building scheduling platforms where users meet users.",
+        "categoryClaim": null,
+        "audienceSignals": [
+          "individuals"
+        ],
+        "socialProof": [],
+        "metaDescription": "A fully customizable scheduling software for individuals, businesses taking calls and developers building scheduling platforms where users meet users."
+      },
+      "evidence": [
+        {
+          "type": "page",
+          "url": "https://cal.com",
+          "snippet": "Cal.com | Scheduling Software for Online Bookings | The better way to schedule your meetings"
+        }
+      ],
+      "limitations": []
+    },
+    "pricing": {
+      "claim": "Plans: free (price not linked in copy); teams (price not linked in copy); enterprise (price not linked in copy). 16 price mention(s) in copy.",
+      "confidence": "medium",
+      "data": {
+        "plans": [
+          {
+            "planName": "free",
+            "monthly": null,
+            "annualMonthly": null,
+            "currency": "$"
+          },
+          {
+            "planName": "teams",
+            "monthly": null,
+            "annualMonthly": null,
+            "currency": "$"
+          },
+          {
+            "planName": "enterprise",
+            "monthly": null,
+            "annualMonthly": null,
+            "currency": "$"
+          }
+        ],
+        "hasFreeTrial": true,
+        "hasFreemium": true,
+        "billingModel": "per-seat",
+        "pricingPageFound": true,
+        "pricingPageUrl": "https://cal.com/pricing"
+      },
+      "evidence": [
+        {
+          "type": "page",
+          "url": "https://cal.com/pricing",
+          "snippet": "Prices seen: $12, $28, $12, $28, $12, $28"
+        }
+      ],
+      "limitations": [
+        "Some prices could not be linked to a specific plan; they are reported as copy mentions only."
+      ]
+    },
+    "channels": [
+      {
+        "claim": "Indexed content footprint: ~7847 URLs (720 blog, 0 docs, 0 templates, 11 customer stories, 0 changelog)",
+        "confidence": "high",
+        "data": {
+          "channel": "SEO / content",
+          "signal": "heavy content investment",
+          "confidence": "high",
+          "evidence": [
+            {
+              "type": "sitemap",
+              "url": "https://cal.com/sitemap.xml",
+              "snippet": "7847 URLs; blog=720, docs=0, templates=0"
+            }
+          ],
+          "url": "https://cal.com/sitemap.xml"
+        },
+        "evidence": [
+          {
+            "type": "sitemap",
+            "url": "https://cal.com/sitemap.xml",
+            "snippet": "7847 URLs; blog=720, docs=0, templates=0"
+          }
+        ],
+        "limitations": []
+      },
+      {
+        "claim": "Integration/marketplace surface: Integrations directory, App marketplace",
+        "confidence": "high",
+        "data": {
+          "channel": "Integrations / marketplaces",
+          "signal": "Integrations directory, App marketplace",
+          "confidence": "high",
+          "evidence": [
+            {
+              "type": "page",
+              "url": "https://cal.com/docs/api-reference/v2",
+              "snippet": "Integrations directory"
+            },
+            {
+              "type": "page",
+              "url": "https://cal.com/app",
+              "snippet": "App marketplace"
+            }
+          ],
+          "url": "https://cal.com"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "https://cal.com/docs/api-reference/v2",
+            "snippet": "Integrations directory"
+          },
+          {
+            "type": "page",
+            "url": "https://cal.com/app",
+            "snippet": "App marketplace"
+          }
+        ],
+        "limitations": []
+      },
+      {
+        "claim": "Affiliate program page exists at /affiliate",
+        "confidence": "high",
+        "data": {
+          "channel": "Affiliates / referrals",
+          "signal": "Affiliate program: page at /affiliate",
+          "confidence": "high",
+          "evidence": [
+            {
+              "type": "page",
+              "url": "https://cal.com/affiliate",
+              "snippet": "Affiliate program page"
+            }
+          ],
+          "url": "https://cal.com/affiliate"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "https://cal.com/affiliate",
+            "snippet": "Affiliate program page"
+          }
+        ],
+        "limitations": []
+      },
+      {
+        "claim": "Jobs page exists but lists no GTM (sales/marketing/growth) roles",
+        "confidence": "medium",
+        "data": {
+          "channel": "Outbound / sales hiring",
+          "signal": "no GTM roles open",
+          "confidence": "medium",
+          "evidence": [
+            {
+              "type": "page",
+              "url": "https://cal.com/careers/apply?user=careers",
+              "snippet": "careers page loaded"
+            }
+          ],
+          "url": "https://cal.com/careers/apply?user=careers"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "https://cal.com/careers/apply?user=careers",
+            "snippet": "careers page loaded"
+          }
+        ],
+        "limitations": [
+          "Some companies hire GTM roles on external boards; absence here is weak evidence."
+        ]
+      },
+      {
+        "claim": "Agent surface present: llms.txt",
+        "confidence": "high",
+        "data": {
+          "channel": "Agent surfaces",
+          "signal": "llms.txt exists (14280 bytes)",
+          "confidence": "high",
+          "evidence": [
+            {
+              "type": "fetch",
+              "url": "https://cal.com/llms.txt",
+              "snippet": "# Cal.com: Scheduling Infrastructure for Individuals, Teams, and Organizations\r\n\r\n\r\n> Cal.com is a scheduling platform and scheduling API for individuals, teams"
+            }
+          ],
+          "url": "https://cal.com/llms.txt"
+        },
+        "evidence": [
+          {
+            "type": "fetch",
+            "url": "https://cal.com/llms.txt",
+            "snippet": "# Cal.com: Scheduling Infrastructure for Individuals, Teams, and Organizations\r\n\r\n\r\n> Cal.com is a scheduling platform and scheduling API for individuals, teams"
+          }
+        ],
+        "limitations": []
+      }
+    ],
+    "loops": [
+      {
+        "claim": "Free tools section at /tools",
+        "confidence": "high",
+        "data": {
+          "loop": "Free tools",
+          "description": "Free tooling hub at /tools (Tools | Cal.com)",
+          "confidence": "high"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "https://cal.com/tools",
+            "snippet": "Tools | Cal.com"
+          }
+        ],
+        "limitations": [
+          "Tool count is approximate; each tool is a separate SEO landing page only if indexed."
+        ]
+      },
+      {
+        "claim": "Public share artifacts: copy mentions \"embeddable\"",
+        "confidence": "medium",
+        "data": {
+          "loop": "Public share artifacts",
+          "description": "Users publish public pages/links made with the product; every artifact carries the brand to non-users",
+          "confidence": "medium"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "",
+            "snippet": "copy: \"...embeddable...\""
+          }
+        ],
+        "limitations": [
+          "Copy mention does not prove users actually share; check for live public examples."
+        ]
+      },
+      {
+        "claim": "GitHub presence linked: https://github.com/calcom/cal.com",
+        "confidence": "medium",
+        "data": {
+          "loop": "Open source as distribution",
+          "description": "Public GitHub repo linked from the marketing site; open source can drive developer adoption and trust",
+          "confidence": "medium"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "https://github.com/calcom/cal.com",
+            "snippet": "GitHub link on site"
+          }
+        ],
+        "limitations": [
+          "Link alone does not show stars, contributors, or whether the core product is open source; check the repo."
+        ]
+      },
+      {
+        "claim": "API / developer docs linked from the site",
+        "confidence": "high",
+        "data": {
+          "loop": "API / developer docs",
+          "description": "Developer docs turn integrators into a distribution channel: every integration brings its users",
+          "confidence": "high"
+        },
+        "evidence": [
+          {
+            "type": "page",
+            "url": "",
+            "snippet": "API/developer docs link on site"
+          }
+        ],
+        "limitations": []
+      }
+    ],
+    "limitations": [
+      "Some prices could not be linked to a specific plan; they are reported as copy mentions only.",
+      "Review-site presence (G2, Capterra, Product Hunt ranking) (suggested check: search the company name on g2.com and capterra.com manually)",
+      "Paid acquisition (ads spend, keywords) (suggested check: check the Meta Ad Library and Google Ads Transparency Center for the brand)"
+    ]
+  },
+  "limitations": [
+    "Some prices could not be linked to a specific plan; they are reported as copy mentions only.",
+    "Review-site presence (G2, Capterra, Product Hunt ranking) (suggested check: search the company name on g2.com and capterra.com manually)",
+    "Paid acquisition (ads spend, keywords) (suggested check: check the Meta Ad Library and Google Ads Transparency Center for the brand)"
+  ],
+  "generated_at": "2026-10-11T14:40:00.462Z"
+}
