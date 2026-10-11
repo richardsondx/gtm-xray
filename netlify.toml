@@ -1,0 +1,10 @@
+# Netlify build settings for the gtm-xray web app.
+# The Next.js Runtime is applied automatically for Next.js 13.5+;
+# no plugin declaration needed. Engine sources are vendored from
+# ../src/gtm into web/lib/engine by web/scripts/sync-engine.mjs
+# (prebuild hook) on every build.
+
+[build]
+  base = "web"
+  command = "npm run build"
+  publish = ".next"
