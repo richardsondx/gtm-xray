@@ -8,6 +8,12 @@ Reverse-engineer any startup's go-to-market strategy from its public web surface
 
 </div>
 
+## See it working
+
+A full teardown of higgsfield.ai, run from the web app on Oct 30, 2026: the typed domain and all four stages done, positioning from the page title and meta description, 7 channels with sources, and a referral loop at 25 percent. Pricing is the honest gap in this screenshot: Higgsfield renders its pricing in JavaScript, so the fetched HTML contains no prices, and the report says so instead of guessing them.
+
+![gtm-xray running a full teardown of higgsfield.ai](docs/screenshot-higgsfield.png)
+
 ## Quickstart
 
 ```sh
@@ -31,6 +37,7 @@ gtmx teardown cal.com cal.com --depth full --out teardown.md
 # One facet at a time
 gtmx positioning https://cal.com
 gtmx pricing cal.com
+gtmx render-pricing higgsfield.ai --screenshot pricing.png
 gtmx channels cal.com
 gtmx loops cal.com
 
@@ -54,11 +61,11 @@ score = icpFit (0-3) + intentLevel (0-2) + competitorProof (0-2) + speedBonus (0
 
 ## How it works
 
-- `src/gtm/`: fetch (15s timeout, browser UA, never throws on HTTP errors), regex HTML extractor (no cheerio), sitemap content-footprint counter, positioning, pricing heuristics, channel mapping, loop detection, teardown orchestration, distribution planner, Markdown/JSON report renderer.
+- `src/gtm/`: fetch (15s timeout, browser UA, never throws on HTTP errors), regex HTML extractor (no cheerio), sitemap content-footprint counter, positioning, pricing heuristics (paired monthly plus annual, per-plan credits or seats, trial days), channel mapping, loop detection, motion and funnel verdict, teardown orchestration with rendered pricing fallback, distribution planner, Markdown/JSON report renderer.
 - `src/server/`: MCP server over stdio with six tools (`teardown_startup`, `analyze_positioning`, `analyze_pricing`, `map_channels`, `find_acquisition_loops`, `build_distribution_plan`). Contracts in [docs/mcp-contracts.md](docs/mcp-contracts.md).
 - `src/cli.ts`: the `gtmx` CLI, including `setup`.
 - `.agents/skills/reverse-engineer-gtm/`: the agent skill.
-- Runtime dependencies: `@modelcontextprotocol/sdk` only. Node 22+.
+- Runtime dependencies: `@modelcontextprotocol/sdk` and `playwright` (Playwright is used only when teardown needs rendered pricing, or when `render-pricing` runs; fetch-only teardowns do not launch a browser). Node 22+.
 
 ## Docs
 

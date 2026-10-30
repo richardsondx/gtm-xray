@@ -13,6 +13,7 @@ const CLI_COMMANDS = new Set([
   "teardown",
   "positioning",
   "pricing",
+  "render-pricing",
   "channels",
   "loops",
   "plan",

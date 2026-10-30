@@ -113,13 +113,26 @@ const findShareArtifacts = (homeHtml: string): Finding<AcquisitionLoop> | null =
 const findReferralTerms = async (
   origin: string,
 ): Promise<Finding<AcquisitionLoop> | null> => {
-  for (const path of ["/referral", "/referrals", "/affiliates"]) {
+  for (const path of ["/referral", "/referrals", "/affiliate", "/affiliates"]) {
     const url = new URL(path, origin).toString();
     const res = await fetchPage(url);
     if (res.ok && res.html && res.html.length > 800) {
-      const text = res.html.replace(/<[^>]*>/g, " ");
+      // Old bug, fixed Oct 30: terms were pulled from raw HTML, so the
+      // first "%" in a stylesheet or script (Higgsfield: "0%") became
+      // "Program pays/shares 0% per referral", which is nonsense. Now
+      // strip scripts/styles first, and only accept a rate that sits
+      // next to earn/commission/up-to wording. A bare 0% is ignored.
+      const text = res.html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ");
+      const termsMatch =
+        /(earn|commission|up to|get|receive)[^.;]{0,40}?([\d]+%|\$[\d,]+|free (month|year|credits?))/i.exec(
+          text,
+        );
       const terms =
-        /([\d]+%|\$[\d,]+|free (month|year|credits?))/i.exec(text)?.[0] ?? null;
+        termsMatch?.[2] && termsMatch[2] !== "0%" ? termsMatch[2] : null;
       return {
         claim: `Referral/affiliate program at ${path}${terms ? ` (terms mention "${terms}")` : ""}`,
         confidence: "high",

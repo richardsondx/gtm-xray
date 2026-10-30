@@ -8,7 +8,17 @@ import type { GtmTeardown } from "./teardown.js";
 import type { DistributionPlan } from "./distributionPlan.js";
 import type { GtmReportEnvelope } from "./evidence.js";
 
-const conf = (c: string): string => c.toUpperCase();
+/**
+ * Panel fix, Oct 30: HIGH / MEDIUM / LOW badges meant nothing to a
+ * GTM head and did not change what they should do. Plain words say
+ * what the confidence actually means: seen directly on the page,
+ * inferred from a link, or not verified.
+ */
+const conf = (c: string): string =>
+  c === "high" ? "Seen directly" : c === "medium" ? "Inferred" : "Not verified";
+
+const confRank = (c: string): number =>
+  c === "high" ? 0 : c === "medium" ? 1 : 2;
 
 const evList = (
   evidence: readonly { type: string; url: string; snippet: string }[],
@@ -29,23 +39,34 @@ export const renderTeardownMarkdown = (
   lines.push("");
   lines.push(`- Domain: ${t.domain}`);
   lines.push(`- Homepage: ${t.homepageUrl}`);
-  lines.push(`- Depth: ${t.depth}`);
   lines.push(`- Generated: ${envelope.generated_at}`);
   lines.push("");
 
-  lines.push("## Snapshot");
+  // Verdict first, panel fix: a GTM head decides from the top three
+  // bullets, then reads down for proof. Counts are not insight.
+  const rankedChannels = [...t.channels].sort(
+    (a, b) => confRank(a.confidence) - confRank(b.confidence),
+  );
+  const topChannel = rankedChannels[0];
+  const pricedPlans = t.pricing.data.plans.filter(
+    (p) => p.monthly !== null || p.annualMonthly !== null,
+  );
+  lines.push("## Verdict: how they win, in three bullets");
   lines.push("");
   lines.push(
-    `- Positioning: ${t.positioning.claim} [${conf(t.positioning.confidence)}]`,
+    `- ${t.motion ? t.motion.claim : "Motion not assessed"} [${t.motion ? conf(t.motion.confidence) : "Not verified"}]`,
   );
   lines.push(
-    `- Pricing: ${t.pricing.claim} [${conf(t.pricing.confidence)}]`,
+    `- Strongest customer channel: ${topChannel ? `${topChannel.data.channel}, ${topChannel.data.signal}` : "No channel signal found"}${topChannel?.evidence[0]?.url ? `, see ${topChannel.evidence[0].url}` : ""}`,
   );
   lines.push(
-    `- Channels detected: ${t.channels.length} (${t.channels.map((c) => c.data.channel).join(", ") || "none"})`,
+    `- Pricing at a glance: ${pricedPlans.length > 0 ? pricedPlans.map((p) => `${p.planName} ${p.currency}${p.monthly ?? p.annualMonthly}${p.includedQuantity !== null && p.unit ? `, ${p.includedQuantity} ${p.unit}` : ""}`).join("; ") : "No priced plans found"} (source: ${t.pricing.data.source === "rendered" ? "rendered page" : "fetched page"})`,
   );
   lines.push(
-    `- Acquisition loops detected: ${t.loops.length} (${t.loops.map((l) => l.data.loop).join(", ") || "none"})`,
+    `- Who they sell to: ${t.positioning.data.audienceSignals.join(", ") || "Audience not clear from the homepage"}; headline: "${t.positioning.data.headline || "Not found"}"`,
+  );
+  lines.push(
+    `- What to copy first: ${t.loops[0] ? `${t.loops[0].data.loop}, ${t.loops[0].data.description.replace(" ()", "")}` : topChannel ? `${topChannel.data.channel} as above` : "No loop or channel to copy from this teardown"}`,
   );
   lines.push("");
 
@@ -72,13 +93,13 @@ export const renderTeardownMarkdown = (
   lines.push("");
   lines.push(`- Claim: ${pr.claim} [${conf(pr.confidence)}]`);
   lines.push(
-    `- Billing model: ${pr.data.billingModel}; free trial: ${pr.data.hasFreeTrial ? "yes" : "no"}; freemium: ${pr.data.hasFreemium ? "yes" : "no"}`,
+    `- Source: ${pr.data.source === "rendered" ? "rendered page (what a visitor sees)" : "fetched page (server HTML)"}; billing model: ${pr.data.billingModel}; free trial: ${pr.data.hasFreeTrial ? "yes" : "no"}${pr.data.trialDays !== null ? ` (${pr.data.trialDays} days)` : ""}; free version: ${pr.data.hasFreemium ? "yes" : "no"}`,
   );
   if (pr.data.plans.length > 0) {
     lines.push("- Plans:");
     for (const plan of pr.data.plans) {
       lines.push(
-        `  - ${plan.planName}: ${plan.monthly !== null ? `${plan.currency}${plan.monthly}/mo` : "price n/a"}${plan.annualMonthly !== null ? ` (${plan.currency}${plan.annualMonthly}/mo annual)` : ""}`,
+        `  - ${plan.planName}: ${plan.monthly !== null ? `${plan.currency}${plan.monthly}/mo` : "Not found"}${plan.annualMonthly !== null ? ` (${plan.currency}${plan.annualMonthly}/mo annual)` : ""}${plan.includedQuantity !== null && plan.unit ? `, includes ${plan.includedQuantity} ${plan.unit}` : ""}`,
       );
     }
   }
@@ -87,14 +108,14 @@ export const renderTeardownMarkdown = (
   lines.push(evList(pr.evidence));
   lines.push("");
 
-  lines.push("## Channels");
+  lines.push("## Channels, strongest proof first");
   lines.push("");
   if (t.channels.length === 0) {
     lines.push("_No channel signals detected._");
   } else {
     lines.push("| Channel | Signal | Confidence | Evidence |");
     lines.push("| --- | --- | --- | --- |");
-    for (const c of t.channels) {
+    for (const c of rankedChannels) {
       const ev = c.evidence
         .map((e) => `${e.url || "(site)"}`)
         .join("<br>");
@@ -117,8 +138,32 @@ export const renderTeardownMarkdown = (
   }
   lines.push("");
 
+  lines.push("## What to try next, starting points only");
+  lines.push("");
+  lines.push(
+    "These are starting points tied to the channels above, not proven results. Presence is not performance: a channel existing does not prove it brings customers.",
+  );
+  if (rankedChannels.length === 0) {
+    lines.push("- No channel was found to base an experiment on. Start with a competitor that has a clearer channel footprint.");
+  } else {
+    rankedChannels.slice(0, 3).forEach((c, i) => {
+      const url = c.evidence[0]?.url ?? t.homepageUrl;
+      lines.push(
+        `- Experiment ${i + 1}: copy the ${c.data.channel} move at ${url}. First step: study that page and ship one comparable artifact. Signal to watch: signups attributed to that channel in 4 to 8 weeks. Kill it if it brings no qualified signups in that window.`,
+      );
+    });
+  }
+  lines.push("");
+  lines.push(
+    "- What not to copy blindly: a linked social profile is not an active channel, and a large sitemap is not proof that search brings signups. Check activity and ranking before investing.",
+  );
+  lines.push("");
+
   lines.push("## What we could not verify");
   lines.push("");
+  lines.push(
+    "Paid spend, traffic, conversion rate, CAC, true channel mix, and profitability cannot be told from public pages alone. They are unknown, not zero.",
+  );
   if (t.limitations.length === 0) {
     lines.push("_No recorded limitations._");
   } else {
@@ -139,6 +184,20 @@ export const renderPlanMarkdown = (
   lines.push("");
   lines.push(`- ICP: ${plan.icp}`);
   lines.push(`- Generated: ${envelope.generated_at}`);
+  lines.push("");
+
+  lines.push("## Start here: first 3 bets, in order");
+  lines.push("");
+  if (plan.bets.length === 0) {
+    lines.push("_No bets generated._");
+  } else {
+    plan.bets.slice(0, 3).forEach((bet, i) => {
+      lines.push(`- ${i + 1}. ${bet.channel} (score ${bet.score}/8, cost ${bet.expectedCost}, time to signal ${bet.timeToSignal})`);
+    });
+    lines.push(
+      "- The rest below are later, not now. Do not start all bets at once; run the first 3, kill on their signals, then take the next one.",
+    );
+  }
   lines.push("");
 
   lines.push("## Ranked channel bets");

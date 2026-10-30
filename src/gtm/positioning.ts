@@ -64,11 +64,18 @@ export const analyzePositioning = (
     );
   }
 
-  const headline = extract.h1s[0] ?? "";
-  const subhead = extract.firstParaAfterH1 || "";
-  if (!headline) {
+  // JS-rendered pages (Higgsfield is the case that exposed this) often
+  // have no h1 in the server HTML at all, so the report showed an empty
+  // headline even though the page title and meta description were
+  // fetched fine. Fall back to the page title, labelled as such, instead
+  // of showing nothing: the title is fetched evidence, not invented copy.
+  const headline = extract.h1s[0] ?? extract.title;
+  const subhead = extract.firstParaAfterH1 || extract.metaDescription || "";
+  if (!extract.h1s[0]) {
     confidence = "low";
-    limitations.push("No h1 found on the page; headline could not be read.");
+    limitations.push(
+      "No h1 found on the page; page title used as the headline instead.",
+    );
   }
 
   const body = `${extract.title} ${extract.h1s.join(" ")} ${subhead}`.slice(0, 2000);
@@ -91,9 +98,11 @@ export const analyzePositioning = (
   }
 
   return {
-    claim: headline
+    claim: extract.h1s[0]
       ? `Hero headline is "${headline.slice(0, 90)}"`
-      : "No readable hero headline found",
+      : headline
+        ? `Page title used as headline (no h1 in HTML): "${headline.slice(0, 90)}"`
+        : "No readable hero headline found",
     confidence,
     data: {
       headline,

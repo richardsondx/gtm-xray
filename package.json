@@ -24,7 +24,8 @@
     "mcp": "node dist/main.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.1"
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "playwright": "^1.64.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

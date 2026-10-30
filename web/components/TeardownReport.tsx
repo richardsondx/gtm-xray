@@ -11,7 +11,13 @@ import type { GtmTeardown } from "../lib/engine/teardown";
 import { renderTeardownMarkdown } from "../lib/engine/report";
 
 export function ConfBadge({ confidence }: { confidence: Confidence }) {
-  return <span className={`badge ${confidence}`}>{confidence}</span>;
+  const label =
+    confidence === "high"
+      ? "Seen directly"
+      : confidence === "medium"
+        ? "Inferred"
+        : "Not verified";
+  return <span className={`badge ${confidence}`}>{label}</span>;
 }
 
 export function EvidenceList({
@@ -82,6 +88,11 @@ export default function TeardownReport({
 
   const p = teardown.positioning;
   const pr = teardown.pricing;
+  const topChannel =
+    [...teardown.channels].sort((a, b) =>
+      (a.confidence === "high" ? 0 : a.confidence === "medium" ? 1 : 2) -
+      (b.confidence === "high" ? 0 : b.confidence === "medium" ? 1 : 2),
+    )[0] ?? null;
 
   return (
     <div className="report">
@@ -125,6 +136,30 @@ export default function TeardownReport({
       </div>
 
       <div className="sec">
+        <SectionHead title="Verdict: how they win" />
+        <ul>
+          <li>
+            Motion: {teardown.motion ? teardown.motion.claim : "Motion not assessed"}{" "}
+            {teardown.motion ? <ConfBadge confidence={teardown.motion.confidence} /> : null}
+          </li>
+          <li>
+            Strongest customer channel:{" "}
+            {topChannel ? `${topChannel.data.channel}, ${topChannel.data.signal}` : "No channel signal found"}
+          </li>
+          <li>
+            Pricing at a glance:{" "}
+            {pr.data.plans.filter((plan) => plan.monthly !== null || plan.annualMonthly !== null).length > 0
+              ? pr.data.plans
+                  .filter((plan) => plan.monthly !== null || plan.annualMonthly !== null)
+                  .map((plan) => `${plan.planName} ${plan.currency}${plan.monthly ?? plan.annualMonthly}`)
+                  .join("; ")
+              : "No priced plans found"}{" "}
+            (source: {pr.data.source === "rendered" ? "rendered page" : "fetched page"})
+          </li>
+        </ul>
+      </div>
+
+      <div className="sec">
         <SectionHead title="Positioning" />
         <FindingHeader finding={p} />
         <dl className="kv">
@@ -162,7 +197,9 @@ export default function TeardownReport({
                 <div className="price">
                   {plan.monthly !== null
                     ? `${plan.currency}${plan.monthly}`
-                    : "Not in copy"}
+                    : plan.annualMonthly !== null
+                      ? `${plan.currency}${plan.annualMonthly}`
+                      : "Not found"}
                 </div>
                 <div className="per">
                   {plan.monthly !== null
@@ -170,7 +207,12 @@ export default function TeardownReport({
                       (plan.annualMonthly !== null
                         ? `, ${plan.currency}${plan.annualMonthly} billed annually`
                         : "")
-                    : "price could not be linked to this plan"}
+                    : plan.annualMonthly !== null
+                      ? "/month, billed annually"
+                      : "Price not found on the pricing page"}
+                  {plan.includedQuantity !== null && plan.unit
+                    ? ` · includes ${plan.includedQuantity} ${plan.unit}`
+                    : ""}
                 </div>
               </div>
             ))}

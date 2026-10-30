@@ -9,7 +9,16 @@ import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { runTeardown, type TeardownDepth } from "./gtm/teardown.js";
 import { positioningForUrl } from "./gtm/positioning.js";
-import { pricingForUrl, findPricingUrl } from "./gtm/pricing.js";
+import {
+  pricingForUrl,
+  findPricingUrl,
+  analyzePricing,
+  mergePricingSnapshots,
+  type Pricing,
+} from "./gtm/pricing.js";
+import { extractPage } from "./gtm/extract.js";
+import { renderPage } from "./gtm/render.js";
+import type { Finding } from "./gtm/evidence.js";
 import { mapChannels } from "./gtm/channels.js";
 import { findAcquisitionLoops } from "./gtm/loops.js";
 import {
@@ -39,6 +48,7 @@ Usage:
   gtmx teardown <company> <domain> [--depth full] [--json] [--out file]
   gtmx positioning <url> [--json] [--out file]
   gtmx pricing <domain-or-url> [--json] [--out file]
+  gtmx render-pricing <domain-or-url> [--screenshot file.png] [--json] [--out file]
   gtmx channels <domain> [--json] [--out file]
   gtmx loops <domain> [--json] [--out file]
   gtmx plan --startup "..." --icp "..." [--price 29] [--motion plg|sales|hybrid]
@@ -89,7 +99,17 @@ const cmdTeardown = async (args: string[]): Promise<void> => {
   const depthIdx = flagArgs.indexOf("--depth");
   const depth: TeardownDepth =
     depthIdx >= 0 && flagArgs[depthIdx + 1] === "full" ? "full" : "quick";
-  const result = await runTeardown(company, domain, depth);
+  const renderPricing = flagArgs.includes("--render")
+    ? true
+    : flagArgs.includes("--no-render")
+      ? false
+      : undefined;
+  const result = await runTeardown(
+    company,
+    domain,
+    depth,
+    renderPricing === undefined ? {} : { renderPricing },
+  );
   await emit(opts, renderTeardownMarkdown(result), renderJson(result));
 };
 
@@ -143,6 +163,155 @@ const cmdPricing = async (args: string[]): Promise<void> => {
     ...finding.limitations.map((l) => `- ${l}`),
     "",
   ].join("\n");
+  await emit(opts, md, renderJson(envelope));
+};
+
+const relabelRendered = (
+  finding: Finding<Pricing>,
+  label: string,
+): Finding<Pricing> => ({
+  ...finding,
+  claim: finding.claim.replaceAll("fetched HTML", "rendered page"),
+  evidence: finding.evidence.map((e) => ({
+    ...e,
+    snippet: `Rendered (${label}): ${e.snippet}`,
+  })),
+  limitations: finding.limitations.map((l) =>
+    l.replaceAll("fetched HTML", "rendered page"),
+  ),
+});
+
+const cmdRenderPricing = async (args: string[]): Promise<void> => {
+  // Extract render-only flags first; --json and --out are parsed next.
+  let screenshotPath: string | null = null;
+  const restArgs: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const a = args[i];
+    if (a === undefined) continue;
+    if (a === "--screenshot") {
+      const next = args[i + 1];
+      if (!next) throw new Error("--screenshot needs a file path");
+      screenshotPath = next;
+      i += 1;
+    } else {
+      restArgs.push(a);
+    }
+  }
+  const { opts, rest } = parseGlobals(restArgs);
+  const [target] = rest;
+  if (!target) throw new Error("Usage: gtmx render-pricing <domain-or-url> [--screenshot file.png]");
+  let url = target;
+  if (!/^https?:\/\//i.test(url)) {
+    const origin = `https://${target}`;
+    const found = await findPricingUrl(origin);
+    if (!found.url) throw new Error(found.limitation ?? "No pricing page found");
+    url = found.url;
+  }
+
+  const render = await renderPage(url, {
+    screenshotPath: screenshotPath ?? undefined,
+    interactPricing: true,
+  });
+  const fetchOnly = await pricingForUrl(url);
+
+  const byLabel = new Map<string, Finding<Pricing>>();
+  for (const snap of render.snapshots) {
+    byLabel.set(
+      snap.label,
+      relabelRendered(
+        analyzePricing(extractPage(snap.html, render.finalUrl), render.finalUrl),
+        snap.label,
+      ),
+    );
+  }
+  const initialRendered = byLabel.get("initial") ?? null;
+  const annualRendered = byLabel.get("annual") ?? null;
+  // Panel fix: never discard the monthly view when an annual view
+  // exists. Paired monthly plus annual is the finding a GTM head needs.
+  const rendered = initialRendered
+    ? mergePricingSnapshots(initialRendered, annualRendered)
+    : annualRendered;
+
+  const limitations = [...new Set([
+    ...render.limitations,
+    ...(rendered?.limitations ?? []),
+    ...fetchOnly.limitations,
+    ...(render.ok
+      ? []
+      : ["Rendered pricing unavailable; the fetch-only result below stands alone."]),
+  ])];
+
+  const planLines = (f: Finding<Pricing> | null): string[] =>
+    f
+      ? f.data.plans.map(
+          (p) =>
+            `- ${p.planName}: ${p.monthly !== null ? `${p.currency}${p.monthly}/mo` : "Not found"}${p.annualMonthly !== null ? ` (${p.currency}${p.annualMonthly}/mo annual)` : ""}${p.includedQuantity !== null && p.unit ? `, includes ${p.includedQuantity} ${p.unit}` : ""}`,
+        )
+      : ["- (no rendered pricing finding)"];
+
+  const md = [
+    `# Rendered pricing: ${url}`,
+    "",
+    `- Rendered at: ${render.renderedAt}`,
+    `- Final URL: ${render.finalUrl}`,
+    `- HTTP status: ${render.status || "(browser capture, no response status recorded)"}`,
+    `- Viewport: ${render.viewport.width}x${render.viewport.height}`,
+    `- Screenshot: ${render.screenshotPath ?? "(none requested)"}`,
+    `- Annual screenshot: ${render.annualScreenshotPath ?? "(none, annual view not captured)"}`,
+    `- Network requests captured: ${render.network.length}`,
+    `- Detected tags (request observed, use not proven): ${render.detectedTags.join(", ") || "none"}`,
+    `- Detected affiliate tools (request observed, use not proven): ${render.detectedAffiliateTools.join(", ") || "none"}`,
+    "",
+    "## Rendered pricing",
+    "",
+    rendered
+      ? `- Claim: ${rendered.claim} [${rendered.confidence.toUpperCase()}]`
+      : "- Claim: no rendered pricing could be captured.",
+    ...(rendered ? planLines(rendered) : []),
+    "",
+    "## Snapshot pricing (initial vs annual toggle)",
+    "",
+    initialRendered
+      ? `- Initial: ${initialRendered.claim} [${initialRendered.confidence.toUpperCase()}]`
+      : "- Initial: (none)",
+    annualRendered
+      ? `- Annual toggle: ${annualRendered.claim} [${annualRendered.confidence.toUpperCase()}]`
+      : "- Annual toggle: (no annual toggle clicked)",
+    "",
+    "## Fetch-only pricing, for comparison",
+    "",
+    `- Claim: ${fetchOnly.claim} [${fetchOnly.confidence.toUpperCase()}]`,
+    ...planLines(fetchOnly),
+    "",
+    "## What we could not verify",
+    ...limitations.map((l) => `- ${l}`),
+    "",
+  ].join("\n");
+
+  const jsonRender = {
+    ...render,
+    html: "[omitted from JSON; see the pricing findings and screenshot]",
+    text: "[omitted from JSON; see the pricing findings and screenshot]",
+    snapshots: render.snapshots.map((s) => ({
+      label: s.label,
+      title: s.title,
+      textLength: s.text.length,
+      htmlLength: s.html.length,
+    })),
+  };
+  const envelope = {
+    findings: {
+      url,
+      pricingPageUrl: url,
+      rendered,
+      initialRendered,
+      annualRendered,
+      fetchOnly,
+      render: jsonRender,
+    },
+    limitations,
+    generated_at: nowIso(),
+  };
   await emit(opts, md, renderJson(envelope));
 };
 
@@ -437,6 +606,9 @@ export const runCli = async (argv: string[]): Promise<void> => {
       break;
     case "pricing":
       await cmdPricing(args);
+      break;
+    case "render-pricing":
+      await cmdRenderPricing(args);
       break;
     case "channels":
       await cmdChannels(args);

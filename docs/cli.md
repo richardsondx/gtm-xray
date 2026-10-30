@@ -15,6 +15,18 @@ gtmx teardown cal.com cal.com --depth full --out teardown.md
 - `domain`: `cal.com` or `https://cal.com`.
 - `--depth quick` (default): positioning, pricing, channels. `--depth full`
   also detects acquisition loops.
+- The report opens with a verdict: motion, strongest channel, pricing
+  at a glance, who they sell to, and what to copy first, then ranked
+  channels, loops, three next experiments, and what could not be
+  verified. Confidence is written in plain words: Seen directly,
+  Inferred, or Not verified.
+- Rendered pricing is now inside teardown, not only a side command:
+  when fetch-only pricing finds no priced plans, teardown runs the
+  Playwright renderer on the pricing page and uses the paired monthly
+  plus annual result, labelled rendered. `--render` forces rendered
+  pricing, `--no-render` disables it. On a machine without Chromium
+  installed, teardown records that as a limitation and the fetch-only
+  result stands; it does not guess prices.
 
 ## positioning
 
@@ -32,6 +44,30 @@ a domain (finds `/pricing` automatically) or a full URL.
 ```sh
 gtmx pricing cal.com
 gtmx pricing https://cal.com/pricing --json
+```
+
+## render-pricing
+
+Rendered pricing, board item 1. Loads the pricing page in a real
+Chromium browser via Playwright and captures rendered DOM, visible
+text, a full-page screenshot, network requests, detected analytics
+tags, and affiliate tooling. If an annual billing toggle exists, it
+clicks it and captures that view as a second snapshot, with its own
+screenshot, but only when the toggle actually changes visible text.
+The monthly and annual views are merged into one paired finding,
+never by discarding the monthly view. The report also includes the
+fetch-only pricing result for comparison, so a rendered price is
+never presented without showing what fetch-only saw. Tags are
+detected only from network requests that returned 2xx, and are
+labelled request observed, use not proven, because a script loading
+does not prove ads work. If Chromium is not installed, the command
+says so and tells you to run `npx playwright install chromium`; it
+does not guess prices. Rendered capture refuses private network
+addresses and never signs in, submits a form, or buys anything.
+
+```sh
+gtmx render-pricing higgsfield.ai --screenshot pricing.png
+gtmx render-pricing https://higgsfield.ai/pricing --json
 ```
 
 ## channels
